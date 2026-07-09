@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>马克笔记</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f3;
+      --surface: #ffffff;
+      --surface-strong: #f0f3eb;
+      --ink: #242824;
+      --muted: #69706b;
+      --line: #dfe4dc;
+      --accent: #1d7258;
+      --accent-strong: #145941;
+      --accent-soft: #dceee6;
+      --warn: #b44a3b;
+      --shadow: 0 18px 40px rgba(34, 40, 34, 0.12);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(29, 114, 88, 0.24);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      height: 100vh;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      min-height: 0;
+      border-right: 1px solid var(--line);
+      background: var(--surface-strong);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(29, 114, 88, 0.22);
+      transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+
+    .icon-button:hover {
+      transform: translateY(-1px);
+      background: var(--accent-strong);
+      box-shadow: 0 12px 24px rgba(29, 114, 88, 0.26);
+    }
+
+    .icon-button.secondary {
+      background: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .icon-button.secondary:hover {
+      background: #f8faf6;
+      box-shadow: none;
+    }
+
+    .icon-button.danger {
+      color: var(--warn);
+    }
+
+    .icon {
+      display: block;
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      pointer-events: none;
+    }
+
+    .search-row {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+    }
+
+    .search-box .icon {
+      width: 17px;
+      height: 17px;
+      color: var(--muted);
+    }
+
+    .search-box input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .notes-list {
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+    }
+
+    .note-item {
+      width: 100%;
+      display: grid;
+      gap: 8px;
+      padding: 14px 12px;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--ink);
+      text-align: left;
+    }
+
+    .note-item:hover {
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .note-item.active {
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px var(--line), 0 8px 18px rgba(34, 40, 34, 0.08);
+    }
+
+    .note-item-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .note-item-preview {
+      display: -webkit-box;
+      min-height: 37px;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .note-item-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty-list {
+      margin: 28px 10px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .editor {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-width: 0;
+      min-height: 0;
+      background: var(--surface);
+    }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .status-group {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-main {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .editor-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 34px clamp(20px, 6vw, 72px);
+    }
+
+    .paper {
+      width: min(100%, 940px);
+      min-height: calc(100vh - 168px);
+      margin: 0 auto;
+    }
+
+    .title-input {
+      display: block;
+      width: 100%;
+      min-height: 58px;
+      resize: none;
+      overflow: hidden;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: clamp(30px, 5vw, 48px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .content-input {
+      display: block;
+      width: 100%;
+      min-height: 58vh;
+      margin-top: 24px;
+      resize: none;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #303630;
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .title-input::placeholder,
+    .content-input::placeholder,
+    .search-box input::placeholder {
+      color: #9aa29d;
+    }
+
+    .editor-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+      padding: 12px 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .word-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .saved-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      white-space: nowrap;
+    }
+
+    .saved-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        grid-template-rows: auto auto auto;
+        max-height: 42vh;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        padding: 14px 16px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .search-row {
+        padding: 10px 16px;
+      }
+
+      .notes-list {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 78vw);
+        gap: 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px 16px 14px;
+      }
+
+      .note-item {
+        min-height: 116px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .editor-toolbar,
+      .editor-footer {
+        padding-inline: 16px;
+      }
+
+      .editor-body {
+        padding: 24px 18px;
+      }
+
+      .paper {
+        min-height: 56vh;
+      }
+
+      .title-input {
+        font-size: 32px;
+      }
+
+      .content-input {
+        min-height: 44vh;
+        font-size: 17px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-label="马克笔记">
+    <aside class="sidebar" aria-label="笔记列表">
+      <header class="brand">
+        <div class="brand-title">
+          <h1>马克笔记</h1>
+        </div>
+        <button class="icon-button" id="newNoteButton" type="button" title="新建笔记" aria-label="新建笔记">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+        </button>
+      </header>
+
+      <div class="search-row">
+        <label class="search-box">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input id="searchInput" type="search" placeholder="搜索笔记" autocomplete="off">
+        </label>
+      </div>
+
+      <nav class="notes-list" id="notesList" aria-label="全部笔记"></nav>
+    </aside>
+
+    <section class="editor" aria-label="笔记内容">
+      <div class="editor-toolbar">
+        <div class="status-group">
+          <div class="status-main" id="currentStatus">准备就绪</div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="icon-button secondary" id="duplicateButton" type="button" title="复制笔记" aria-label="复制笔记">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="icon-button secondary danger" id="deleteButton" type="button" title="删除笔记" aria-label="删除笔记">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+              <path d="M10 11v5"></path>
+              <path d="M14 11v5"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <article class="paper">
+          <textarea class="title-input" id="titleInput" rows="1" placeholder="无标题笔记"></textarea>
+          <textarea class="content-input" id="contentInput" placeholder="开始记录..."></textarea>
+        </article>
+      </div>
+
+      <footer class="editor-footer">
+        <div class="word-stats">
+          <span id="charCount">0 字符</span>
+          <span id="lineCount">1 行</span>
+        </div>
+        <span class="saved-pill" id="savedState">已保存</span>
+      </footer>
+    </section>
+  </main>
+
+  <template id="noteItemTemplate">
+    <button class="note-item" type="button">
+      <span class="note-item-title"></span>
+      <span class="note-item-preview"></span>
+      <span class="note-item-meta"></span>
+    </button>
+  </template>
+
+  <script>
+    const STORAGE_KEY = "mark-notes-v1";
+    const AUTOSAVE_DELAY = 220;
+
+    const state = {
+      notes: [],
+      activeId: "",
+      search: "",
+      saveTimer: 0
+    };
+
+    const els = {
+      newNoteButton: document.querySelector("#newNoteButton"),
+      searchInput: document.querySelector("#searchInput"),
+      notesList: document.querySelector("#notesList"),
+      template: document.querySelector("#noteItemTemplate"),
+      titleInput: document.querySelector("#titleInput"),
+      contentInput: document.querySelector("#contentInput"),
+      duplicateButton: document.querySelector("#duplicateButton"),
+      deleteButton: document.querySelector("#deleteButton"),
+      currentStatus: document.querySelector("#currentStatus"),
+      charCount: document.querySelector("#charCount"),
+      lineCount: document.querySelector("#lineCount"),
+      savedState: document.querySelector("#savedState")
+    };
+
+    function createId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `note-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function now() {
+      return new Date().toISOString();
+    }
+
+    function makeNote(title = "无标题笔记", content = "") {
+      const timestamp = now();
+      return {
+        id: createId(),
+        title,
+        content,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+    }
+
+    function seedNotes() {
+      return [
+        makeNote("今天的想法", "把零散想法放在这里，之后再慢慢整理成更清晰的段落。"),
+        makeNote("项目清单", "1. 梳理需求\n2. 拆分任务\n3. 记录进展")
+      ];
+    }
+
+    function loadNotes() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (saved && Array.isArray(saved.notes)) {
+          state.notes = saved.notes;
+          state.activeId = saved.activeId || saved.notes[0]?.id || "";
+          return;
+        }
+      } catch (error) {
+        console.warn("Unable to load notes", error);
+      }
+
+      state.notes = seedNotes();
+      state.activeId = state.notes[0].id;
+      persistNow();
+    }
+
+    function persistNow() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        notes: state.notes,
+        activeId: state.activeId
+      }));
+      els.savedState.textContent = "已保存";
+    }
+
+    function scheduleSave() {
+      window.clearTimeout(state.saveTimer);
+      els.savedState.textContent = "保存中";
+      state.saveTimer = window.setTimeout(() => {
+        persistNow();
+        renderList();
+      }, AUTOSAVE_DELAY);
+    }
+
+    function getActiveNote() {
+      return state.notes.find((note) => note.id === state.activeId) || null;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const today = new Date();
+      const sameDay = date.toDateString() === today.toDateString();
+      return new Intl.DateTimeFormat("zh-CN", {
+        hour: sameDay ? "2-digit" : undefined,
+        minute: sameDay ? "2-digit" : undefined,
+        month: sameDay ? undefined : "short",
+        day: sameDay ? undefined : "numeric"
+      }).format(date);
+    }
+
+    function normalize(value) {
+      return value.trim().toLocaleLowerCase("zh-CN");
+    }
+
+    function getFilteredNotes() {
+      const keyword = normalize(state.search);
+      const sorted = [...state.notes].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      if (!keyword) {
+        return sorted;
+      }
+
+      return sorted.filter((note) => {
+        const haystack = normalize(`${note.title} ${note.content}`);
+        return haystack.includes(keyword);
+      });
+    }
+
+    function renderList() {
+      const notes = getFilteredNotes();
+      els.notesList.replaceChildren();
+
+      if (notes.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent = state.search ? "没有匹配的笔记" : "暂无笔记";
+        els.notesList.append(empty);
+        return;
+      }
+
+      notes.forEach((note) => {
+        const item = els.template.content.firstElementChild.cloneNode(true);
+        const title = note.title.trim() || "无标题笔记";
+        const preview = note.content.trim().replace(/\s+/g, " ") || "空白内容";
+
+        item.dataset.id = note.id;
+        item.classList.toggle("active", note.id === state.activeId);
+        item.querySelector(".note-item-title").textContent = title;
+        item.querySelector(".note-item-preview").textContent = preview;
+        item.querySelector(".note-item-meta").textContent = formatDate(note.updatedAt);
+        item.addEventListener("click", () => selectNote(note.id));
+        els.notesList.append(item);
+      });
+    }
+
+    function renderEditor() {
+      const note = getActiveNote();
+      const disabled = !note;
+
+      els.titleInput.disabled = disabled;
+      els.contentInput.disabled = disabled;
+      els.duplicateButton.disabled = disabled;
+      els.deleteButton.disabled = disabled;
+
+      if (!note) {
+        els.titleInput.value = "";
+        els.contentInput.value = "";
+        els.currentStatus.textContent = "没有选中的笔记";
+        resizeTitleInput();
+        updateStats();
+        return;
+      }
+
+      els.titleInput.value = note.title;
+      els.contentInput.value = note.content;
+      els.currentStatus.textContent = `编辑于 ${formatDate(note.updatedAt)}`;
+      resizeTitleInput();
+      updateStats();
+    }
+
+    function renderAll() {
+      renderList();
+      renderEditor();
+    }
+
+    function selectNote(id) {
+      if (state.activeId === id) {
+        return;
+      }
+      state.activeId = id;
+      persistNow();
+      renderAll();
+    }
+
+    function createNote() {
+      const note = makeNote("无标题笔记", "");
+      state.notes.unshift(note);
+      state.activeId = note.id;
+      state.search = "";
+      els.searchInput.value = "";
+      persistNow();
+      renderAll();
+      els.titleInput.select();
+    }
+
+    function duplicateNote() {
+      const note = getActiveNote();
+      if (!note) {
+        return;
+      }
+
+      const copy = makeNote(`${note.title || "无标题笔记"} 副本`, note.content);
+      state.notes.unshift(copy);
+      state.activeId = copy.id;
+      persistNow();
+      renderAll();
+      els.titleInput.focus();
+    }
+
+    function deleteNote() {
+      const note = getActiveNote();
+      if (!note) {
+        return;
+      }
+
+      const title = note.title.trim() || "无标题笔记";
+      const confirmed = window.confirm(`删除“${title}”？`);
+      if (!confirmed) {
+        return;
+      }
+
+      const index = state.notes.findIndex((item) => item.id === note.id);
+      state.notes = state.notes.filter((item) => item.id !== note.id);
+      state.activeId = state.notes[index]?.id || state.notes[index - 1]?.id || state.notes[0]?.id || "";
+      persistNow();
+      renderAll();
+    }
+
+    function updateActiveNote(field, value) {
+      const note = getActiveNote();
+      if (!note) {
+        return;
+      }
+
+      note[field] = value;
+      note.updatedAt = now();
+      els.currentStatus.textContent = "正在编辑";
+      updateStats();
+      scheduleSave();
+    }
+
+    function resizeTitleInput() {
+      els.titleInput.style.height = "auto";
+      els.titleInput.style.height = `${els.titleInput.scrollHeight}px`;
+    }
+
+    function handleTitleInput(event) {
+      const value = event.target.value.replace(/[\r\n]+/g, " ");
+      if (value !== event.target.value) {
+        event.target.value = value;
+      }
+      resizeTitleInput();
+      updateActiveNote("title", value);
+    }
+
+    function updateStats() {
+      const text = els.contentInput.value || "";
+      const lines = text.length ? text.split(/\n/).length : 1;
+      els.charCount.textContent = `${text.length} 字符`;
+      els.lineCount.textContent = `${lines} 行`;
+    }
+
+    els.newNoteButton.addEventListener("click", createNote);
+    els.duplicateButton.addEventListener("click", duplicateNote);
+    els.deleteButton.addEventListener("click", deleteNote);
+    els.searchInput.addEventListener("input", (event) => {
+      state.search = event.target.value;
+      renderList();
+    });
+    els.titleInput.addEventListener("input", handleTitleInput);
+    els.titleInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        els.contentInput.focus();
+      }
+    });
+    els.contentInput.addEventListener("input", (event) => updateActiveNote("content", event.target.value));
+    els.contentInput.addEventListener("input", updateStats);
+    window.addEventListener("resize", resizeTitleInput);
+
+    window.addEventListener("keydown", (event) => {
+      const isCommand = event.metaKey || event.ctrlKey;
+      if (!isCommand) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        createNote();
+      }
+
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        persistNow();
+      }
+    });
+
+    loadNotes();
+    renderAll();
+  </script>
+</body>
+</html>
